@@ -1,0 +1,135 @@
+name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: "Deploy the frontend app"
+        required: true
+        default: true
+        type: boolean
+      deploy_pocketbase:
+        description: "Deploy the PocketBase admin app"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      pocketbase: ${{ steps.filter.outputs.pocketbase }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed deploy targets
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - "Dockerfile"
+              - ".dockerignore"
+              - ".nvmrc"
+              - "biome.json"
+              - "package.json"
+              - "package-lock.json"
+              - "tsconfig.json"
+              - "vite.config.ts"
+              - "public/**"
+              - "scripts/**"
+              - "src/**"
+            pocketbase:
+              - "pocketbase/**"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend)
+    concurrency:
+      group: deploy-frontend-prod
+      cancel-in-progress: false
+    env:
+      DOKKU_APP: ${{ vars.DOKKU_FRONTEND_APP }}
+      DOKKU_HOST: ${{ secrets.DOKKU_HOST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate frontend deploy settings
+        run: |
+          test -n "${DOKKU_APP}" || { echo "Missing repository variable DOKKU_FRONTEND_APP"; exit 1; }
+          test -n "${DOKKU_HOST}" || { echo "Missing secret DOKKU_HOST"; exit 1; }
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
+
+      - name: Add Dokku host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${DOKKU_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Deploy frontend
+        run: |
+          git remote add dokku "dokku@${DOKKU_HOST}:${DOKKU_APP}"
+          git push --force dokku HEAD:main
+
+  deploy-pocketbase:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      (github.event_name == 'push' && needs.changes.outputs.pocketbase == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_pocketbase)
+    concurrency:
+      group: deploy-pocketbase-prod
+      cancel-in-progress: false
+    env:
+      DOKKU_APP: ${{ vars.DOKKU_POCKETBASE_APP }}
+      DOKKU_HOST: ${{ secrets.DOKKU_HOST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PocketBase deploy settings
+        run: |
+          test -n "${DOKKU_APP}" || { echo "Missing repository variable DOKKU_POCKETBASE_APP"; exit 1; }
+          test -n "${DOKKU_HOST}" || { echo "Missing secret DOKKU_HOST"; exit 1; }
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
+
+      - name: Add Dokku host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${DOKKU_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Build PocketBase subtree ref
+        id: subtree
+        run: |
+          echo "ref=$(git subtree split --prefix pocketbase HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy PocketBase app
+        run: |
+          git remote add dokku "dokku@${DOKKU_HOST}:${DOKKU_APP}"
+          git push --force dokku "${POCKETBASE_REF}:main"
+        env:
+          POCKETBASE_REF: ${{ steps.subtree.outputs.ref }}
