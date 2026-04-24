@@ -1,0 +1,17 @@
+.git
+.github
+.playwright-mcp
+.vite
+.vscode
+dist
+node_modules
+pocketbase
+article-toc-desktop.png
+homepage-accents.png
+homepage-coherent-accents.png
+homepage-colored.png
+homepage-local.png
+homepage-mobile.png
+homepage-professional.png
+homepage-projects-unified-focus-pop.png
+trevordebard-home.png
