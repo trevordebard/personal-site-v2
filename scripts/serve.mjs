@@ -1,10 +1,69 @@
 import { createServer } from "node:http";
+import { createReadStream, existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import app from "../dist/server/server.js";
 
 const host = "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
+const clientDir = normalize(join(process.cwd(), "dist/client"));
+
+const contentTypes = new Map([
+	[".css", "text/css; charset=utf-8"],
+	[".html", "text/html; charset=utf-8"],
+	[".ico", "image/x-icon"],
+	[".js", "text/javascript; charset=utf-8"],
+	[".json", "application/json; charset=utf-8"],
+	[".map", "application/json; charset=utf-8"],
+	[".png", "image/png"],
+	[".svg", "image/svg+xml"],
+	[".txt", "text/plain; charset=utf-8"],
+	[".webmanifest", "application/manifest+json; charset=utf-8"],
+]);
+
+function getContentType(pathname) {
+	return contentTypes.get(extname(pathname)) ?? "application/octet-stream";
+}
+
+function getStaticFilePath(urlPathname) {
+	const pathname = urlPathname === "/" ? "/index.html" : urlPathname;
+	const filePath = normalize(join(clientDir, pathname));
+
+	if (!filePath.startsWith(clientDir)) {
+		return null;
+	}
+
+	return filePath;
+}
+
+async function tryServeStatic(request, response) {
+	if (!request.url) {
+		return false;
+	}
+
+	const url = new URL(request.url, `http://${request.headers.host ?? "127.0.0.1"}`);
+	const filePath = getStaticFilePath(url.pathname);
+
+	if (!filePath || !existsSync(filePath)) {
+		return false;
+	}
+
+	const fileStats = await stat(filePath);
+
+	if (!fileStats.isFile()) {
+		return false;
+	}
+
+	response.statusCode = 200;
+	response.setHeader("content-type", getContentType(filePath));
+	response.setHeader("content-length", fileStats.size);
+
+	await pipeline(createReadStream(filePath), response);
+
+	return true;
+}
 
 function getRequestOrigin(request) {
 	const forwardedProto = request.headers["x-forwarded-proto"];
@@ -51,6 +110,10 @@ function toWebRequest(request) {
 
 const server = createServer(async (request, response) => {
 	try {
+		if (await tryServeStatic(request, response)) {
+			return;
+		}
+
 		const webResponse = await app.fetch(toWebRequest(request));
 
 		response.statusCode = webResponse.status;
