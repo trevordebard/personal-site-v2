@@ -136,6 +136,34 @@ function createHeadingId(text: string, counts: Map<string, number>) {
 	return nextCount === 1 ? baseId : `${baseId}-${nextCount}`;
 }
 
+function decodeHtmlEntities(value: string) {
+	const namedEntities: Record<string, string> = {
+		amp: "&",
+		apos: "'",
+		gt: ">",
+		lt: "<",
+		quot: '"',
+	};
+
+	return value.replace(/&(#(\d+)|#x([\da-f]+)|[a-z]+);/gi, (entity, name) => {
+		if (name.startsWith("#x")) {
+			return String.fromCodePoint(Number.parseInt(name.slice(2), 16));
+		}
+
+		if (name.startsWith("#")) {
+			return String.fromCodePoint(Number.parseInt(name.slice(1), 10));
+		}
+
+		return namedEntities[name.toLowerCase()] ?? entity;
+	});
+}
+
+function toPlainHeadingText(value: string) {
+	const inlineHtml = marked.parseInline(value) as string;
+
+	return decodeHtmlEntities(inlineHtml.replace(/<[^>]*>/g, "")).trim();
+}
+
 function renderMarkdown(markdown: string) {
 	const tokens = marked.lexer(markdown);
 	const slugCounts = new Map<string, number>();
@@ -147,7 +175,7 @@ function renderMarkdown(markdown: string) {
 			continue;
 		}
 
-		const plainText = token.text.trim();
+		const plainText = toPlainHeadingText(token.text);
 
 		const heading = {
 			id: createHeadingId(plainText, slugCounts),
