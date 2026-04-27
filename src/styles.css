@@ -39,6 +39,7 @@ html,
 body,
 #app {
   min-height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -435,10 +436,12 @@ a {
 
 .article-page {
   background: #f8fafc;
+  overflow-x: hidden;
 }
 
 .blog-index-shell,
 .article-shell {
+  width: 100%;
   padding-inline: 1.5rem;
 }
 
@@ -565,7 +568,8 @@ a {
 }
 
 .article-header {
-  max-width: 60rem;
+  width: 100%;
+  max-width: min(100%, 60rem);
 }
 
 .article-meta-row {
@@ -591,13 +595,16 @@ a {
 .article-layout {
   display: grid;
   gap: clamp(2rem, 5vw, 3.5rem);
+  width: 100%;
   margin-top: clamp(1.8rem, 6vw, 2.3rem);
-  max-width: 60rem;
+  max-width: min(100%, 60rem);
+  min-width: 0;
 }
 
 .article-sidebar {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .article-toc-card {
@@ -652,9 +659,20 @@ a {
 
 .article-prose {
   border-top: 1px solid var(--line);
+  min-width: 0;
+  max-width: 100%;
   padding-top: clamp(1.55rem, 6vw, 2rem);
   font-size: clamp(1rem, 4vw, 1.03rem);
   color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.article-prose > * {
+  max-width: 100%;
+}
+
+.article-prose :is(h2, h3, h4, p, li, blockquote) {
+  overflow-wrap: break-word;
 }
 
 .article-prose > :first-child {
