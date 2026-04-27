@@ -5,35 +5,35 @@ migrate(
     collection.fields.add(
       new TextField({
         name: 'focus_heading',
-        required: true,
+        required: false,
         max: 80,
       }),
     )
     collection.fields.add(
       new TextField({
         name: 'projects_eyebrow',
-        required: true,
+        required: false,
         max: 80,
       }),
     )
     collection.fields.add(
       new TextField({
         name: 'projects_heading',
-        required: true,
+        required: false,
         max: 120,
       }),
     )
     collection.fields.add(
       new TextField({
         name: 'experience_eyebrow',
-        required: true,
+        required: false,
         max: 80,
       }),
     )
     collection.fields.add(
       new TextField({
         name: 'experience_heading',
-        required: true,
+        required: false,
         max: 120,
       }),
     )
@@ -41,11 +41,11 @@ migrate(
     app.save(collection)
 
     const record = app.findFirstRecordByData('homepage_settings', 'key', 'main')
-    record.set('focus_heading', 'Current focus')
-    record.set('projects_eyebrow', 'Selected Work')
-    record.set('projects_heading', 'Projects')
-    record.set('experience_eyebrow', 'Experience')
-    record.set('experience_heading', 'Work history')
+    record.set('focus_heading', 'Leadership focus')
+    record.set('projects_eyebrow', 'Selected Evidence')
+    record.set('projects_heading', 'Delivery snapshots')
+    record.set('experience_eyebrow', 'Career Record')
+    record.set('experience_heading', 'Experience')
     app.save(record)
   },
   (app) => {

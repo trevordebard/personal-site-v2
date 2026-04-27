@@ -1,13 +1,13 @@
 export type BlogPost = {
 	slug: string;
 	title: string;
-	excerpt: string;
-	seoDescription: string;
-	heroEyebrow: string;
-	heroSummary: string;
+	excerpt?: string;
+	seoDescription?: string;
+	heroEyebrow?: string;
+	heroSummary?: string;
 	publishingNote?: string;
-	publishedAt: string;
-	readTimeMinutes: number;
+	publishedAt?: string;
+	readTimeMinutes?: number;
 	tags: string[];
 	featured: boolean;
 	markdown: string;
