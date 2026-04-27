@@ -533,7 +533,9 @@ a {
 
 .article-header h1 {
   max-width: 22ch;
-  font-size: clamp(3rem, 8vw, 5.25rem);
+  overflow-wrap: anywhere;
+  font-size: clamp(2.35rem, 10vw, 5.25rem);
+  text-wrap: balance;
 }
 
 .article-prose {
@@ -559,7 +561,7 @@ a {
 }
 
 .article-shell {
-  padding-block: clamp(2rem, 7vw, 4.75rem) 4rem;
+  padding-block: clamp(1.55rem, 6vw, 4.75rem) 4rem;
 }
 
 .article-header {
@@ -589,7 +591,7 @@ a {
 .article-layout {
   display: grid;
   gap: clamp(2rem, 5vw, 3.5rem);
-  margin-top: 2.3rem;
+  margin-top: clamp(1.8rem, 6vw, 2.3rem);
   max-width: 60rem;
 }
 
@@ -650,8 +652,8 @@ a {
 
 .article-prose {
   border-top: 1px solid var(--line);
-  padding-top: 2rem;
-  font-size: 1.03rem;
+  padding-top: clamp(1.55rem, 6vw, 2rem);
+  font-size: clamp(1rem, 4vw, 1.03rem);
   color: var(--ink);
 }
 
