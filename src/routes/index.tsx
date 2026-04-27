@@ -107,7 +107,7 @@ function Home() {
 							target="_blank"
 						>
 							<div className="project-topline">
-								<p className="project-label">Featured project</p>
+								<p className="project-label">Selected case study</p>
 								<ArrowUpRight size={18} />
 							</div>
 							<h3>{project.name}</h3>
