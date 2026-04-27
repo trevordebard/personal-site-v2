@@ -171,4 +171,4 @@ Use this order for the first production setup:
 11. Verify:
    - `https://trevordebard.com`
    - `https://www.trevordebard.com` redirects to apex
-   - `https://admin.trevordebard.com` prompts for basic auth and then shows PocketBase
+   - `https://admin.trevordebard.com` prompts for basic auth and then redirects to PocketBase

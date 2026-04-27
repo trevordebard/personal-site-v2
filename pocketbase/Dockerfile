@@ -12,6 +12,7 @@ RUN unzip /tmp/pocketbase.zip -d /pb \
   && chmod +x /pb/pocketbase
 
 COPY pb_migrations /pb/pb_migrations
+COPY pb_hooks /pb/pb_hooks
 COPY docker-entrypoint.sh /usr/local/bin/pocketbase-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/pocketbase-entrypoint.sh
