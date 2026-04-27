@@ -61,21 +61,14 @@ function BlogIndexPage() {
 						<article className="featured-post-card">
 							<p className="featured-label">Featured article</p>
 							<h2>{featuredPost.title}</h2>
-							<p>{featuredPost.heroSummary}</p>
-							<div className="post-meta-row">
-								<span>{formatDate(featuredPost.publishedAt)}</span>
-								<span>
-									<Clock3 size={15} />
-									{featuredPost.readTimeMinutes} min read
-								</span>
-							</div>
-							<div className="tag-list">
-								{featuredPost.tags.map((tag) => (
-									<span className="tag" key={tag}>
-										{tag}
-									</span>
-								))}
-							</div>
+							{featuredPost.heroSummary ? (
+								<p>{featuredPost.heroSummary}</p>
+							) : null}
+							<PostMeta
+								publishedAt={featuredPost.publishedAt}
+								readTimeMinutes={featuredPost.readTimeMinutes}
+							/>
+							<TagList tags={featuredPost.tags} />
 							<Link
 								className="blog-primary-link"
 								params={{ slug: featuredPost.slug }}
@@ -103,26 +96,19 @@ function BlogIndexPage() {
 							params={{ slug: post.slug }}
 							to="/blog/$slug"
 						>
-							<div className="blog-card-topline">
-								<span>{post.heroEyebrow}</span>
-								{post.featured ? <strong>Featured</strong> : null}
-							</div>
+							{post.heroEyebrow || post.featured ? (
+								<div className="blog-card-topline">
+									{post.heroEyebrow ? <span>{post.heroEyebrow}</span> : null}
+									{post.featured ? <strong>Featured</strong> : null}
+								</div>
+							) : null}
 							<h3>{post.title}</h3>
-							<p>{post.excerpt}</p>
-							<div className="post-meta-row">
-								<span>{formatDate(post.publishedAt)}</span>
-								<span>
-									<Clock3 size={15} />
-									{post.readTimeMinutes} min read
-								</span>
-							</div>
-							<div className="tag-list">
-								{post.tags.map((tag) => (
-									<span className="tag" key={tag}>
-										{tag}
-									</span>
-								))}
-							</div>
+							{post.excerpt ? <p>{post.excerpt}</p> : null}
+							<PostMeta
+								publishedAt={post.publishedAt}
+								readTimeMinutes={post.readTimeMinutes}
+							/>
+							<TagList tags={post.tags} />
 						</Link>
 					))}
 				</div>
@@ -141,6 +127,46 @@ function BlogIndexPage() {
 				) : null}
 			</section>
 		</main>
+	);
+}
+
+function PostMeta({
+	publishedAt,
+	readTimeMinutes,
+}: {
+	publishedAt?: string;
+	readTimeMinutes?: number;
+}) {
+	if (!publishedAt && !readTimeMinutes) {
+		return null;
+	}
+
+	return (
+		<div className="post-meta-row">
+			{publishedAt ? <span>{formatDate(publishedAt)}</span> : null}
+			{readTimeMinutes ? (
+				<span>
+					<Clock3 size={15} />
+					{readTimeMinutes} min read
+				</span>
+			) : null}
+		</div>
+	);
+}
+
+function TagList({ tags }: { tags: string[] }) {
+	if (tags.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="tag-list">
+			{tags.map((tag) => (
+				<span className="tag" key={tag}>
+					{tag}
+				</span>
+			))}
+		</div>
 	);
 }
 

@@ -14,12 +14,12 @@ type PocketBaseListResponse<T> = {
 type BlogPostRecord = {
 	slug: string;
 	title: string;
-	excerpt: string;
+	excerpt?: string;
 	seo_description?: string;
 	hero_eyebrow?: string;
 	hero_summary?: string;
 	publishing_note?: string;
-	published_at: string;
+	published_at?: string;
 	read_time_minutes?: number;
 	tags?: string;
 	featured?: boolean;
@@ -96,17 +96,25 @@ function splitTags(tags?: string) {
 		.filter(Boolean);
 }
 
+function textValue(value?: string) {
+	return value?.trim() || undefined;
+}
+
 function toBlogPost(record: BlogPostRecord): BlogPost {
+	const excerpt = textValue(record.excerpt);
+	const seoDescription = textValue(record.seo_description);
+	const heroSummary = textValue(record.hero_summary);
+
 	return {
 		slug: record.slug,
 		title: record.title,
-		excerpt: record.excerpt,
-		seoDescription: record.seo_description?.trim() || record.excerpt,
-		heroEyebrow: record.hero_eyebrow?.trim() || "Technical writing",
-		heroSummary: record.hero_summary?.trim() || record.excerpt,
+		excerpt,
+		seoDescription: seoDescription ?? excerpt,
+		heroEyebrow: textValue(record.hero_eyebrow),
+		heroSummary: heroSummary ?? excerpt,
 		publishingNote: record.publishing_note?.trim() || undefined,
-		publishedAt: record.published_at,
-		readTimeMinutes: record.read_time_minutes ?? 5,
+		publishedAt: textValue(record.published_at),
+		readTimeMinutes: record.read_time_minutes,
 		tags: splitTags(record.tags),
 		featured: Boolean(record.featured),
 		markdown: record.markdown,
@@ -133,16 +141,13 @@ function renderMarkdown(markdown: string) {
 	const slugCounts = new Map<string, number>();
 	const headingQueue: BlogPostHeading[] = [];
 	const tableOfContents: BlogPostHeading[] = [];
-	const textRenderer = new marked.TextRenderer();
 
 	for (const token of tokens) {
 		if (token.type !== "heading") {
 			continue;
 		}
 
-		const plainText = marked.Parser.parseInline(token.tokens, {
-			renderer: textRenderer,
-		}).trim();
+		const plainText = token.text.trim();
 
 		const heading = {
 			id: createHeadingId(plainText, slugCounts),

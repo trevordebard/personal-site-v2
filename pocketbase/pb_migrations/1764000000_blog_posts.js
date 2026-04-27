@@ -23,36 +23,36 @@ migrate(
         {
           name: 'excerpt',
           type: 'text',
-          required: true,
+          required: false,
           max: 320,
         },
         {
           name: 'seo_description',
           type: 'text',
-          required: true,
+          required: false,
           max: 320,
         },
         {
           name: 'hero_eyebrow',
           type: 'text',
-          required: true,
+          required: false,
           max: 80,
         },
         {
           name: 'hero_summary',
           type: 'text',
-          required: true,
+          required: false,
           max: 500,
         },
         {
           name: 'published_at',
           type: 'date',
-          required: true,
+          required: false,
         },
         {
           name: 'read_time_minutes',
           type: 'number',
-          required: true,
+          required: false,
           min: 1,
           max: 60,
           onlyInt: true,
@@ -60,7 +60,7 @@ migrate(
         {
           name: 'tags',
           type: 'text',
-          required: true,
+          required: false,
           max: 300,
         },
         {

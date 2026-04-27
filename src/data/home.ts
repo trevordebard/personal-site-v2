@@ -1,17 +1,17 @@
 export type Project = {
 	name: string;
-	description: string;
-	href: string;
+	description?: string;
+	href?: string;
 	tags: string[];
 	accent: string;
 };
 
 export type Experience = {
 	role: string;
-	company: string;
-	start: string;
-	end: string;
-	summary: string;
+	company?: string;
+	start?: string;
+	end?: string;
+	summary?: string;
 	bullets: string[];
 };
 

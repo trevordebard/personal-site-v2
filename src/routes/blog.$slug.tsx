@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { Clock3, Copy, Linkedin, Mail, Twitter } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getBlogPostBySlug } from "../lib/blog-content";
 
 export const Route = createFileRoute("/blog/$slug")({
@@ -71,7 +71,9 @@ function BlogPostPage() {
 
 		const headings = tableOfContents
 			.map(({ id }) => document.getElementById(id))
-			.filter((heading): heading is HTMLElement => heading instanceof HTMLElement);
+			.filter(
+				(heading): heading is HTMLElement => heading instanceof HTMLElement,
+			);
 
 		if (headings.length === 0) {
 			return;
@@ -181,25 +183,20 @@ function BlogPostPage() {
 		<main className="article-page">
 			<section className="article-shell">
 				<header className="article-header">
-					<p className="blog-kicker">{post.heroEyebrow}</p>
+					{post.heroEyebrow ? (
+						<p className="blog-kicker">{post.heroEyebrow}</p>
+					) : null}
 					<h1>{post.title}</h1>
-					<p className="article-summary">{post.heroSummary}</p>
+					{post.heroSummary ? (
+						<p className="article-summary">{post.heroSummary}</p>
+					) : null}
 
-					<div className="article-meta-row">
-						<span>{formatDate(post.publishedAt)}</span>
-						<span>
-							<Clock3 size={15} />
-							{post.readTimeMinutes} min read
-						</span>
-					</div>
+					<ArticleMeta
+						publishedAt={post.publishedAt}
+						readTimeMinutes={post.readTimeMinutes}
+					/>
 
-					<div className="tag-list">
-						{post.tags.map((tag) => (
-							<span className="tag" key={tag}>
-								{tag}
-							</span>
-						))}
-					</div>
+					<TagList tags={post.tags} />
 				</header>
 
 				<div className="article-layout">
@@ -216,13 +213,12 @@ function BlogPostPage() {
 								className="article-share-card article-toc-card"
 							>
 								<p className="blog-kicker">On this page</p>
-								<div className="article-toc-list" role="list">
+								<div className="article-toc-list">
 									{tableOfContents.map((heading) => (
 										<a
 											className={`article-toc-link article-toc-depth-${heading.depth}${activeHeadingId === heading.id ? " is-active" : ""}`}
 											href={`#${heading.id}`}
 											key={heading.id}
-											role="listitem"
 										>
 											{heading.text}
 										</a>
@@ -270,6 +266,46 @@ function BlogPostPage() {
 				</div>
 			</section>
 		</main>
+	);
+}
+
+function ArticleMeta({
+	publishedAt,
+	readTimeMinutes,
+}: {
+	publishedAt?: string;
+	readTimeMinutes?: number;
+}) {
+	if (!publishedAt && !readTimeMinutes) {
+		return null;
+	}
+
+	return (
+		<div className="article-meta-row">
+			{publishedAt ? <span>{formatDate(publishedAt)}</span> : null}
+			{readTimeMinutes ? (
+				<span>
+					<Clock3 size={15} />
+					{readTimeMinutes} min read
+				</span>
+			) : null}
+		</div>
+	);
+}
+
+function TagList({ tags }: { tags: string[] }) {
+	if (tags.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="tag-list">
+			{tags.map((tag) => (
+				<span className="tag" key={tag}>
+					{tag}
+				</span>
+			))}
+		</div>
 	);
 }
 

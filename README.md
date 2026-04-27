@@ -49,6 +49,10 @@ The homepage is controlled by these PocketBase collections:
 The frontend mapping lives in [src/lib/homepage-content.ts](/Users/Trevor.Debardeleben/Documents/New%20project/src/lib/homepage-content.ts:1).
 The blog mapping lives in [src/lib/blog-content.ts](/Users/Trevor.Debardeleben/Documents/New%20project/src/lib/blog-content.ts:1).
 
+Most content fields are optional. PocketBase only requires structural fields
+such as singleton keys, sort order, and publishable blog identity fields; the
+frontend skips empty values instead of rendering placeholders.
+
 ## Blog Publishing Model
 
 The blog routes are designed to read published records from PocketBase at request time.
@@ -56,7 +60,8 @@ The blog routes are designed to read published records from PocketBase at reques
 - Blog index: `/blog`
 - Blog post: `/blog/:slug`
 
-The `blog_posts` collection stores markdown plus the metadata needed for SEO and article previews:
+The `blog_posts` collection requires `slug`, `title`, `status`, and `markdown`.
+Other metadata is optional and only appears in the UI when populated:
 
 - `slug`
 - `title`
