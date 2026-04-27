@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Clock3, Copy, Linkedin, Mail, Twitter } from "lucide-react";
+import { Clock3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getBlogPostBySlug } from "../lib/blog-content";
 
@@ -50,12 +50,9 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function BlogPostPage() {
-	const { canonicalUrl, html, post, tableOfContents } = Route.useLoaderData();
+	const { html, post, tableOfContents } = Route.useLoaderData();
 	const [activeHeadingId, setActiveHeadingId] = useState(
 		tableOfContents[0]?.id ?? "",
-	);
-	const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
-		"idle",
 	);
 
 	useEffect(() => {
@@ -118,79 +115,11 @@ function BlogPostPage() {
 		};
 	}, [tableOfContents]);
 
-	const shareLinks = [
-		{
-			href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(canonicalUrl)}&text=${encodeURIComponent(post.title)}`,
-			label: "Share on X",
-			icon: <Twitter size={16} />,
-		},
-		{
-			href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(canonicalUrl)}`,
-			label: "Share on LinkedIn",
-			icon: <Linkedin size={16} />,
-		},
-		{
-			href: `mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(canonicalUrl)}`,
-			label: "Share by email",
-			icon: <Mail size={16} />,
-		},
-	];
-
-	useEffect(() => {
-		if (copyStatus === "idle") {
-			return;
-		}
-
-		const timeoutId = window.setTimeout(() => {
-			setCopyStatus("idle");
-		}, 1800);
-
-		return () => window.clearTimeout(timeoutId);
-	}, [copyStatus]);
-
-	function copyWithExecCommand(value: string) {
-		const textarea = document.createElement("textarea");
-		textarea.value = value;
-		textarea.setAttribute("readonly", "");
-		textarea.style.position = "absolute";
-		textarea.style.left = "-9999px";
-
-		document.body.appendChild(textarea);
-		textarea.select();
-
-		const copied = document.execCommand("copy");
-
-		document.body.removeChild(textarea);
-
-		return copied;
-	}
-
-	async function handleCopyLink() {
-		try {
-			if (navigator.clipboard?.writeText) {
-				await navigator.clipboard.writeText(canonicalUrl);
-			} else if (!copyWithExecCommand(canonicalUrl)) {
-				throw new Error("Copy command was rejected.");
-			}
-
-			setCopyStatus("copied");
-		} catch {
-			setCopyStatus(copyWithExecCommand(canonicalUrl) ? "copied" : "error");
-		}
-	}
-
 	return (
 		<main className="article-page">
 			<section className="article-shell">
 				<header className="article-header">
-					{post.heroEyebrow ? (
-						<p className="blog-kicker">{post.heroEyebrow}</p>
-					) : null}
 					<h1>{post.title}</h1>
-					{post.heroSummary ? (
-						<p className="article-summary">{post.heroSummary}</p>
-					) : null}
-
 					<ArticleMeta
 						publishedAt={post.publishedAt}
 						readTimeMinutes={post.readTimeMinutes}
@@ -208,10 +137,7 @@ function BlogPostPage() {
 
 					<aside className="article-sidebar">
 						{tableOfContents.length > 0 ? (
-							<nav
-								aria-label="Table of contents"
-								className="article-share-card article-toc-card"
-							>
+							<nav aria-label="Table of contents" className="article-toc-card">
 								<p className="blog-kicker">On this page</p>
 								<div className="article-toc-list">
 									{tableOfContents.map((heading) => (
@@ -225,42 +151,6 @@ function BlogPostPage() {
 									))}
 								</div>
 							</nav>
-						) : null}
-
-						<div className="article-share-card">
-							<p className="blog-kicker">Share</p>
-							<div className="article-share-links">
-								{shareLinks.map((link) => (
-									<a
-										href={link.href}
-										key={link.label}
-										rel="noreferrer"
-										target="_blank"
-									>
-										{link.icon}
-										{link.label}
-									</a>
-								))}
-								<button
-									className={`article-share-action${copyStatus === "copied" ? " is-success" : ""}${copyStatus === "error" ? " is-error" : ""}`}
-									onClick={handleCopyLink}
-									type="button"
-								>
-									<Copy size={16} />
-									{copyStatus === "copied"
-										? "Link copied"
-										: copyStatus === "error"
-											? "Copy failed"
-											: "Copy link"}
-								</button>
-							</div>
-						</div>
-
-						{post.publishingNote ? (
-							<div className="article-share-card article-note-card">
-								<p className="blog-kicker">Publishing note</p>
-								<p>{post.publishingNote}</p>
-							</div>
 						) : null}
 					</aside>
 				</div>
