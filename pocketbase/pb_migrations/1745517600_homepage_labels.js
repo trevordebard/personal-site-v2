@@ -39,14 +39,6 @@ migrate(
     )
 
     app.save(collection)
-
-    const record = app.findFirstRecordByData('homepage_settings', 'key', 'main')
-    record.set('focus_heading', 'Leadership focus')
-    record.set('projects_eyebrow', 'Selected Evidence')
-    record.set('projects_heading', 'Delivery snapshots')
-    record.set('experience_eyebrow', 'Career Record')
-    record.set('experience_heading', 'Experience')
-    app.save(record)
   },
   (app) => {
     const collection = app.findCollectionByNameOrId('homepage_settings')

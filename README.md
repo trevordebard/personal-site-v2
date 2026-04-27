@@ -30,10 +30,11 @@ That script downloads PocketBase into `pocketbase/` on first run, starts it on `
 
 The simplest admin flow is the built-in PocketBase superuser dashboard:
 
-- CMS URL: `http://127.0.0.1:8090/_/`
+- CMS URL: `http://127.0.0.1:8090`
 - Login: the one superuser account you created with `PB_SUPERUSER_EMAIL` and `PB_SUPERUSER_PASSWORD`
 
 There is no custom auth UI in the site. PocketBase admin is the editor interface.
+The root URL redirects to PocketBase's built-in `/_/` dashboard.
 
 ## Homepage Content Model
 
@@ -52,6 +53,10 @@ The blog mapping lives in [src/lib/blog-content.ts](/Users/Trevor.Debardeleben/D
 Most content fields are optional. PocketBase only requires structural fields
 such as singleton keys, sort order, and publishable blog identity fields; the
 frontend skips empty values instead of rendering placeholders.
+
+PocketBase migrations are schema-only. They should create or modify collections,
+fields, indexes, and rules, but they should not create or update content records.
+Production content is managed directly in PocketBase.
 
 ## Blog Publishing Model
 

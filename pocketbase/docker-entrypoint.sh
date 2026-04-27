@@ -5,4 +5,4 @@ if [ ! -f /pb/pb_data/data.db ] && [ -n "${PB_SUPERUSER_EMAIL:-}" ] && [ -n "${P
   /pb/pocketbase superuser create "$PB_SUPERUSER_EMAIL" "$PB_SUPERUSER_PASSWORD"
 fi
 
-exec /pb/pocketbase serve --http=0.0.0.0:${PORT:-8080}
+exec /pb/pocketbase serve --http=0.0.0.0:${PORT:-8080} --hooksDir=/pb/pb_hooks
