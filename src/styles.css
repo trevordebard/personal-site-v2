@@ -57,6 +57,21 @@ a {
   background: rgba(35, 71, 106, 0.14);
 }
 
+.construction-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.construction-page h1 {
+  margin: 0;
+  font-family: "Source Serif 4", serif;
+  font-size: clamp(2.75rem, 8vw, 6rem);
+  line-height: 1;
+}
+
 .hero-shell,
 .section-shell {
   padding-inline: 1.5rem;
