@@ -783,6 +783,35 @@ a {
   color: inherit;
 }
 
+.article-prose .article-mermaid {
+  overflow-x: auto;
+  margin-top: 1.2rem;
+  min-height: 8rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.article-prose .article-mermaid[data-mermaid-pending="true"] {
+  color: transparent;
+}
+
+.article-prose .article-mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.article-prose .article-mermaid[data-mermaid-error="true"] {
+  border-color: color-mix(in srgb, var(--accent-deep) 55%, var(--line));
+  color: var(--accent-deep);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
 .article-prose blockquote {
   border-left: var(--accent-rule-width) solid var(--accent-deep);
   padding-left: 1rem;
