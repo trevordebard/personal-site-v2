@@ -1,7 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { Clock3 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { getBlogPostBySlug } from "../lib/blog-content";
+
+let mermaidRenderCount = 0;
 
 export const Route = createFileRoute("/blog/$slug")({
 	loader: async ({ params }) => {
@@ -129,11 +131,7 @@ function BlogPostPage() {
 				</header>
 
 				<div className="article-layout">
-					<article
-						className="article-prose"
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is authored in PocketBase admin and rendered server-side for article content
-						dangerouslySetInnerHTML={{ __html: html }}
-					/>
+					<ArticleContent html={html} />
 
 					<aside className="article-sidebar">
 						{tableOfContents.length > 0 ? (
@@ -158,6 +156,105 @@ function BlogPostPage() {
 		</main>
 	);
 }
+
+const ArticleContent = memo(function ArticleContent({
+	html,
+}: {
+	html: string;
+}) {
+	const articleRef = useRef<HTMLElement>(null);
+
+	useEffect(() => {
+		if (!html) {
+			return;
+		}
+
+		const mermaidNodes = Array.from(
+			articleRef.current?.querySelectorAll<HTMLElement>(".mermaid") ?? [],
+		);
+
+		if (mermaidNodes.length === 0) {
+			return;
+		}
+
+		let isMounted = true;
+
+		const renderMermaid = async () => {
+			const { default: mermaid } = await import("mermaid");
+
+			if (!isMounted) {
+				return;
+			}
+
+			mermaid.initialize({
+				startOnLoad: false,
+				securityLevel: "strict",
+				theme: "base",
+				themeVariables: {
+					background: "transparent",
+					fontFamily: "IBM Plex Mono, monospace",
+					lineColor: "#8f6e49",
+					primaryBorderColor: "#8f6e49",
+					primaryColor: "#fff8ef",
+					primaryTextColor: "#2d261c",
+					secondaryColor: "#f3dfc3",
+					tertiaryColor: "#f8efe2",
+				},
+			});
+
+			await Promise.all(
+				mermaidNodes.map(async (node) => {
+					const source = node.dataset.mermaidSource ?? node.textContent?.trim();
+
+					if (!source) {
+						return;
+					}
+
+					node.dataset.mermaidSource = source;
+
+					try {
+						const { svg } = await mermaid.render(
+							`article-mermaid-${mermaidRenderCount++}`,
+							source,
+						);
+
+						node.innerHTML = svg;
+						node.classList.remove("mermaid");
+						node.removeAttribute("data-mermaid-pending");
+						node.removeAttribute("data-mermaid-error");
+						node.setAttribute("data-mermaid-rendered", "true");
+					} catch (error) {
+						node.classList.remove("mermaid");
+						node.removeAttribute("data-mermaid-pending");
+						node.setAttribute("data-mermaid-error", "true");
+						node.textContent =
+							error instanceof Error
+								? `Mermaid failed to render: ${error.message}`
+								: "Mermaid failed to render.";
+						console.error("Failed to render Mermaid diagram:", error);
+					}
+				}),
+			);
+		};
+
+		renderMermaid().catch((error) => {
+			console.error("Failed to render Mermaid diagram:", error);
+		});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [html]);
+
+	return (
+		<article
+			className="article-prose"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: markdown is authored in PocketBase admin and rendered server-side for article content
+			dangerouslySetInnerHTML={{ __html: html }}
+			ref={articleRef}
+		/>
+	);
+});
 
 function ArticleMeta({
 	publishedAt,

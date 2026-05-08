@@ -158,6 +158,15 @@ function decodeHtmlEntities(value: string) {
 	});
 }
 
+function escapeHtml(value: string) {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
 function toPlainHeadingText(value: string) {
 	const inlineHtml = marked.parseInline(value) as string;
 
@@ -191,6 +200,17 @@ function renderMarkdown(markdown: string) {
 	}
 
 	const renderer = new marked.Renderer();
+	const renderCode = renderer.code.bind(renderer);
+
+	renderer.code = (token) => {
+		const language = token.lang?.trim().split(/\s+/)[0].toLowerCase();
+
+		if (language === "mermaid") {
+			return `<div class="article-mermaid mermaid" data-mermaid-pending="true">${escapeHtml(token.text)}</div>`;
+		}
+
+		return renderCode(token);
+	};
 
 	renderer.heading = ({ depth, tokens }) => {
 		const heading = headingQueue.shift();
