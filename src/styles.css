@@ -39,7 +39,7 @@ html,
 body,
 #app {
   min-height: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -451,7 +451,7 @@ a {
 
 .article-page {
   background: #f8fafc;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .blog-index-shell,
@@ -890,6 +890,7 @@ a {
   .article-sidebar {
     position: sticky;
     top: 1.5rem;
+    align-self: start;
   }
 
   .article-toc-card {
@@ -897,7 +898,7 @@ a {
   }
 
   .article-toc-list {
-    max-height: min(60vh, 34rem);
+    max-height: min(calc(100vh - 5rem), 34rem);
     overflow: auto;
     padding-right: 0.35rem;
   }
