@@ -1,5 +1,10 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	HeadContent,
+	Link,
+	Scripts,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import appCss from "../styles.css?url";
@@ -43,6 +48,7 @@ export const Route = createRootRoute({
 			},
 		],
 	}),
+	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
 });
 
@@ -68,5 +74,27 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<Scripts />
 			</body>
 		</html>
+	);
+}
+
+function NotFound() {
+	return (
+		<main className="not-found-page">
+			<section className="not-found-panel">
+				<p className="eyebrow">Not found</p>
+				<h1>That page is not available.</h1>
+				<p>
+					The link may be outdated, or the article may not be published yet.
+				</p>
+				<div className="hero-actions">
+					<Link className="action-link" to="/blog">
+						View Blog
+					</Link>
+					<Link className="action-link" to="/">
+						Go Home
+					</Link>
+				</div>
+			</section>
+		</main>
 	);
 }

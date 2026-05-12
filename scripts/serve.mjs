@@ -4,11 +4,13 @@ import { stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { createAnalytics } from "./analytics.mjs";
 import app from "../dist/server/server.js";
 
 const host = "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 const clientDir = normalize(join(process.cwd(), "dist/client"));
+const analytics = createAnalytics();
 
 const contentTypes = new Map([
 	[".css", "text/css; charset=utf-8"],
@@ -59,10 +61,19 @@ async function tryServeStatic(request, response) {
 	response.statusCode = 200;
 	response.setHeader("content-type", getContentType(filePath));
 	response.setHeader("content-length", fileStats.size);
+	analytics.recordPageView(request, response.statusCode);
 
 	await pipeline(createReadStream(filePath), response);
 
 	return true;
+}
+
+function isClientAbort(error) {
+	return (
+		error?.code === "ERR_STREAM_PREMATURE_CLOSE" ||
+		error?.code === "ECONNRESET" ||
+		error?.name === "AbortError"
+	);
 }
 
 function getRequestOrigin(request) {
@@ -118,6 +129,7 @@ const server = createServer(async (request, response) => {
 
 		response.statusCode = webResponse.status;
 		response.statusMessage = webResponse.statusText;
+		analytics.recordPageView(request, webResponse.status);
 
 		for (const [key, value] of webResponse.headers) {
 			response.setHeader(key, value);
@@ -130,6 +142,10 @@ const server = createServer(async (request, response) => {
 
 		await pipeline(Readable.fromWeb(webResponse.body), response);
 	} catch (error) {
+		if (isClientAbort(error)) {
+			return;
+		}
+
 		console.error("Failed to handle request:", error);
 
 		if (!response.headersSent) {

@@ -69,6 +69,34 @@ dokku config:set personal-site POCKETBASE_URL=https://admin.trevordebard.com
 dokku ports:set personal-site http:80:3000 https:443:3000
 ```
 
+The frontend app also writes first-party analytics events to a local spool before
+syncing them to PocketBase. Mount persistent storage for that spool and set
+server-only analytics credentials:
+
+```bash
+dokku storage:ensure-directory personal-site
+dokku storage:mount personal-site /var/lib/dokku/data/storage/personal-site:/app/var
+dokku config:set personal-site \
+  ANALYTICS_SALT=<long-random-string> \
+  ANALYTICS_SPOOL_PATH=/app/var/analytics/events.jsonl \
+  ANALYTICS_POCKETBASE_EMAIL=<pocketbase-superuser-email> \
+  ANALYTICS_POCKETBASE_PASSWORD=<pocketbase-superuser-password>
+```
+
+View analytics in the PocketBase admin dashboard under the
+`analytics_events` collection. Useful starter filters/sorts:
+
+- Recent views: sort by `-viewed_at`
+- Page traffic: filter `path = "/blog"` or sort/group by `path`
+- Referrers: filter `referrer_host != ""`
+- Repeat visitors: filter or export by `visitor_id`
+
+If PocketBase is unavailable, the site still serves pages and analytics events
+remain in the local spool for a later sync. If HTTP basic auth wraps the entire
+PocketBase app, point `POCKETBASE_URL` at an internal/unprotected PocketBase URL
+for server-to-server calls or add a proxy exception for PocketBase API auth;
+Basic auth and PocketBase bearer auth both use the `Authorization` header.
+
 ### 4. Configure the PocketBase app
 
 The PocketBase deploy uses `git subtree split --prefix pocketbase`, so the Dokku app receives `pocketbase/` as its repository root. The PocketBase [Dockerfile](/Users/Trevor.Debardeleben/repos/personal-site/pocketbase/Dockerfile) is written for that subtree deploy shape.
