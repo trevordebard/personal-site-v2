@@ -3,6 +3,7 @@ import { createReadStream } from "node:fs";
 import { access, appendFile, mkdir, rename, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import maxmind from "maxmind";
 
 const ASSET_EXTENSIONS = new Set([
 	".avif",
@@ -46,6 +47,7 @@ let syncInFlight = null;
 let warnedMissingSalt = false;
 let warnedMissingSyncCredentials = false;
 let warnedSyncFailure = false;
+let warnedGeoIpFailure = false;
 
 export function getAnalyticsConfig(env = process.env) {
 	const isProduction = env.NODE_ENV === "production";
@@ -68,6 +70,7 @@ export function getAnalyticsConfig(env = process.env) {
 			env.ANALYTICS_POCKETBASE_EMAIL ?? env.POCKETBASE_SUPERUSER_EMAIL ?? "",
 		pocketBasePassword:
 			env.ANALYTICS_POCKETBASE_PASSWORD ?? env.POCKETBASE_SUPERUSER_PASSWORD ?? "",
+		geoIpDbPath: env.ANALYTICS_GEOIP_DB_PATH ?? "",
 		syncIntervalMs: Number.parseInt(
 			env.ANALYTICS_SYNC_INTERVAL_MS ?? `${DEFAULT_SYNC_INTERVAL_MS}`,
 			10,
@@ -147,7 +150,13 @@ export function summarizeUserAgent(userAgent) {
 	return { browser, device, os };
 }
 
-export function createAnalyticsEvent({ request, status, now = new Date(), salt }) {
+export function createAnalyticsEvent({
+	request,
+	status,
+	now = new Date(),
+	salt,
+	geoLocation = {},
+}) {
 	const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 	const userAgent = request.headers["user-agent"] ?? "";
 	const ip = getClientIp(request);
@@ -166,6 +175,10 @@ export function createAnalyticsEvent({ request, status, now = new Date(), salt }
 		browser: userAgentSummary.browser,
 		device: userAgentSummary.device,
 		os: userAgentSummary.os,
+		country: geoLocation.country ?? "",
+		region: geoLocation.region ?? "",
+		city: geoLocation.city ?? "",
+		timezone: geoLocation.timezone ?? "",
 		user_agent: userAgent.slice(0, 500),
 	};
 }
@@ -177,6 +190,7 @@ export async function appendAnalyticsEvent(spoolPath, event) {
 
 export function createAnalytics(env = process.env, fetchFn = globalThis.fetch) {
 	const config = getAnalyticsConfig(env);
+	const geoLookupPromise = openGeoIpLookup(config.geoIpDbPath);
 
 	if (config.enabled && config.isProduction && !config.salt && !warnedMissingSalt) {
 		warnedMissingSalt = true;
@@ -220,12 +234,23 @@ export function createAnalytics(env = process.env, fetchFn = globalThis.fetch) {
 				return;
 			}
 
-			void appendAnalyticsEvent(
-				config.spoolPath,
-				createAnalyticsEvent({ request, status, salt: config.salt }),
-			).then(scheduleSync, (error) => {
-				console.error("Failed to write analytics event:", error);
-			});
+			const ip = getClientIp(request);
+
+			void createGeoLocation(geoLookupPromise, ip)
+				.then((geoLocation) =>
+					appendAnalyticsEvent(
+						config.spoolPath,
+						createAnalyticsEvent({
+							request,
+							status,
+							salt: config.salt,
+							geoLocation,
+						}),
+					),
+				)
+				.then(scheduleSync, (error) => {
+					console.error("Failed to write analytics event:", error);
+				});
 		},
 		syncNow() {
 			return syncAnalyticsSpool(config, fetchFn);
@@ -237,6 +262,83 @@ export function createAnalytics(env = process.env, fetchFn = globalThis.fetch) {
 		},
 		config,
 	};
+}
+
+export async function openGeoIpLookup(geoIpDbPath) {
+	if (!geoIpDbPath) {
+		return null;
+	}
+
+	try {
+		return await maxmind.open(geoIpDbPath, {
+			watchForUpdates: true,
+			watchForUpdatesNonPersistent: true,
+		});
+	} catch (error) {
+		logGeoIpFailure(error);
+		return null;
+	}
+}
+
+export async function createGeoLocation(geoLookupPromise, ip) {
+	if (!geoLookupPromise || isPrivateOrLocalIp(ip)) {
+		return {};
+	}
+
+	try {
+		const geoLookup = await geoLookupPromise;
+		const geoRecord = geoLookup?.get(ip);
+
+		return getGeoLocationFields(geoRecord);
+	} catch (error) {
+		logGeoIpFailure(error);
+		return {};
+	}
+}
+
+export function getGeoLocationFields(geoRecord) {
+	if (!geoRecord) {
+		return {};
+	}
+
+	const subdivision = geoRecord.subdivisions?.[0];
+
+	return {
+		country:
+			geoRecord.country?.names?.en ??
+			geoRecord.registered_country?.names?.en ??
+			"",
+		region: subdivision?.names?.en ?? "",
+		city: geoRecord.city?.names?.en ?? "",
+		timezone: geoRecord.location?.time_zone ?? "",
+	};
+}
+
+export function isPrivateOrLocalIp(ip) {
+	if (!ip) {
+		return true;
+	}
+
+	return (
+		ip === "::1" ||
+		ip === "::ffff:127.0.0.1" ||
+		ip === "127.0.0.1" ||
+		ip.startsWith("127.") ||
+		ip.startsWith("10.") ||
+		ip.startsWith("192.168.") ||
+		/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip) ||
+		ip.toLowerCase().startsWith("fc") ||
+		ip.toLowerCase().startsWith("fd")
+	);
+}
+
+function logGeoIpFailure(error) {
+	if (warnedGeoIpFailure) {
+		return;
+	}
+
+	warnedGeoIpFailure = true;
+	console.warn("Analytics GeoIP lookup disabled or failed; events will omit location.", error);
 }
 
 export async function syncAnalyticsSpool(config, fetchFn = globalThis.fetch) {

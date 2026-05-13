@@ -79,6 +79,7 @@ dokku storage:mount personal-site /var/lib/dokku/data/storage/personal-site:/app
 dokku config:set personal-site \
   ANALYTICS_SALT=<long-random-string> \
   ANALYTICS_SPOOL_PATH=/app/var/analytics/events.jsonl \
+  ANALYTICS_GEOIP_DB_PATH=/app/var/geo/GeoLite2-City.mmdb \
   ANALYTICS_POCKETBASE_EMAIL=<pocketbase-superuser-email> \
   ANALYTICS_POCKETBASE_PASSWORD=<pocketbase-superuser-password>
 ```
@@ -90,6 +91,24 @@ View analytics in the PocketBase admin dashboard under the
 - Page traffic: filter `path = "/blog"` or sort/group by `path`
 - Referrers: filter `referrer_host != ""`
 - Repeat visitors: filter or export by `visitor_id`
+- Visitor regions: filter `country != ""`, then sort/filter by `region` or `city`
+
+Geographic fields are optional and require a MaxMind GeoLite2 City database at
+`ANALYTICS_GEOIP_DB_PATH`. The app stores only coarse location fields
+(`country`, `region`, `city`, and `timezone`) and does not store raw IP
+addresses. If the database file is missing or unreadable, analytics still works
+without location enrichment.
+
+To enable location enrichment on Dokku, download `GeoLite2-City.mmdb` from
+MaxMind and place it on the host inside the mounted storage directory:
+
+```bash
+ssh root@<dokku-host>
+mkdir -p /var/lib/dokku/data/storage/personal-site/geo
+# copy GeoLite2-City.mmdb into:
+# /var/lib/dokku/data/storage/personal-site/geo/GeoLite2-City.mmdb
+dokku ps:restart personal-site
+```
 
 If PocketBase is unavailable, the site still serves pages and analytics events
 remain in the local spool for a later sync. If HTTP basic auth wraps the entire

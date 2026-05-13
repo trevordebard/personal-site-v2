@@ -6,7 +6,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
 	appendAnalyticsEvent,
 	createAnalyticsEvent,
+	createGeoLocation,
+	getGeoLocationFields,
 	getVisitorId,
+	isPrivateOrLocalIp,
 	shouldTrackPageView,
 	syncAnalyticsSpool,
 } from "./analytics.mjs";
@@ -127,6 +130,9 @@ describe("analytics privacy", () => {
 		expect(event.path).toBe("/blog/example");
 		expect(event.referrer_host).toBe("example.com");
 		expect(event.device).toBe("mobile");
+		expect(event.country).toBe("");
+		expect(event.region).toBe("");
+		expect(event.city).toBe("");
 		expect(serialized).not.toContain("203.0.113.42");
 		expect(event.visitor_id).toBe(
 			getVisitorId({
@@ -142,6 +148,58 @@ describe("analytics privacy", () => {
 				salt: "different-salt",
 			}),
 		);
+	});
+});
+
+describe("GeoIP enrichment", () => {
+	test("maps MaxMind city records into coarse analytics fields", () => {
+		expect(
+			getGeoLocationFields({
+				country: { names: { en: "United States" } },
+				subdivisions: [{ names: { en: "Georgia" } }],
+				city: { names: { en: "Atlanta" } },
+				location: { time_zone: "America/New_York" },
+			}),
+		).toEqual({
+			country: "United States",
+			region: "Georgia",
+			city: "Atlanta",
+			timezone: "America/New_York",
+		});
+	});
+
+	test("skips local and private IP geolocation", async () => {
+		const geoLookup = Promise.resolve({
+			get: vi.fn(() => ({
+				country: { names: { en: "United States" } },
+			})),
+		});
+
+		expect(isPrivateOrLocalIp("127.0.0.1")).toBe(true);
+		expect(isPrivateOrLocalIp("10.0.0.5")).toBe(true);
+		expect(isPrivateOrLocalIp("192.168.1.20")).toBe(true);
+		expect(isPrivateOrLocalIp("172.16.1.20")).toBe(true);
+		expect(isPrivateOrLocalIp("8.8.8.8")).toBe(false);
+		expect(await createGeoLocation(geoLookup, "127.0.0.1")).toEqual({});
+		expect((await geoLookup).get).not.toHaveBeenCalled();
+	});
+
+	test("adds GeoIP fields when a public IP lookup returns a match", async () => {
+		const geoLookup = Promise.resolve({
+			get: vi.fn(() => ({
+				country: { names: { en: "Canada" } },
+				subdivisions: [{ names: { en: "Ontario" } }],
+				city: { names: { en: "Toronto" } },
+				location: { time_zone: "America/Toronto" },
+			})),
+		});
+
+		await expect(createGeoLocation(geoLookup, "8.8.8.8")).resolves.toEqual({
+			country: "Canada",
+			region: "Ontario",
+			city: "Toronto",
+			timezone: "America/Toronto",
+		});
 	});
 });
 
@@ -204,6 +262,10 @@ function makeEvent(eventId) {
 		browser: "Safari",
 		device: "desktop",
 		os: "macOS",
+		country: "United States",
+		region: "Georgia",
+		city: "Atlanta",
+		timezone: "America/New_York",
 		user_agent: "Safari",
 	};
 }
